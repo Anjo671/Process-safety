@@ -1,0 +1,6 @@
+[book]
+title = "Process and safety "
+authors = ["Anjo Bouwmeester"]
+description = "Process and safety final SOLO"
+language = "EN"
+src = "src"

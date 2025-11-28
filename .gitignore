@@ -1,0 +1,7 @@
+/book/
+*.tpy
+*.tpy.bak
+*.tmc
+*.compileinfo
+_Boot/
+_CompileInfo/

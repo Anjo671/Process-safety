@@ -1,0 +1,134 @@
+State student diagram code
+@startuml
+title State Machine: PRG_Student
+hide empty description
+[*] --> STATE_STUDYING
+state STATE_STUDYING {
+  STATE_STUDYING : // Student = working //
+  STATE_STUDYING : TimerStudy(IN := TRUE);
+}
+
+' koffie = Time over OR Tired
+STATE_STUDYING --> STATE_ORDERING : [TimerStudy.Q OR bTired]
+
+state STATE_ORDERING {
+    ' Action: Write to GVL
+    STATE_ORDERING : GVL.bRequestCoffee := TRUE;
+}
+
+STATE_ORDERING --> STATE_WAITING : [Direct]
+
+state STATE_WAITING {
+    STATE_WAITING : // wacht op machine //
+    STATE_WAITING : // nothing //
+}
+
+'Wait until GVL variable becomes TRUE
+STATE_WAITING --> STATE_DRINKING : [GVL.bCoffeeReady = TRUE]
+
+state STATE_DRINKING {
+    ' Als koffie -> reset request
+    STATE_DRINKING : GVL.bRequestCoffee := FALSE;
+    STATE_DRINKING : bEnjoying := TRUE;
+}
+
+STATE_DRINKING --> STATE_STUDYING : [bCupEmpty = TRUE]
+@enduml
+
+ 
+State Machine diagram code
+@startuml
+title State Machine: PRG_Machine
+[*] --> STATE_IDLE
+
+state STATE_IDLE {
+  STATE_IDLE : // Wait on student //
+  STATE_IDLE : bCoffeeReady := FALSE;
+}
+
+' wacht op variable
+STATE_IDLE --> STATE_CALCULATING : [GVL.bRequestCoffee = TRUE]
+
+state STATE_CALCULATING {
+   STATE_CALCULATING : // Call functie //
+   STATE_CALCULATING : tBrewTime := FC_CalcTime(iStrength);
+}
+
+STATE_CALCULATING --> STATE_BREWING : [tBrewTime > 0]
+
+state STATE_BREWING {
+    STATE_BREWING : bPumpOn := TRUE;
+    STATE_BREWING : TimerBrew(IN := TRUE, PT := tBrewTime);
+}
+
+STATE_BREWING --> STATE_NOTIFY : [TimerBrew.Q = TRUE]
+
+state STATE_NOTIFY {
+    STATE_NOTIFY : bPumpOn := FALSE;
+    ' coffee is ready
+    STATE_NOTIFY : GVL.bCoffeeReady := TRUE;
+}
+
+' wacht op reset commando
+STATE_NOTIFY --> STATE_IDLE : [GVL.bRequestCoffee = FALSE]
+@enduml
+ 
+Sequence diagram communication code
+@startuml
+title Sequence: Communication 
+autonumber 
+
+participant "PRG_Student" as Student
+participant "GVL_Data" as GVL
+participant "PRG_Machine" as Machine
+
+Note over Student: Student gets thirsty
+Student -> GVL : Write: bRequestCoffee := TRUE
+activate GVL
+
+Machine -> GVL : Read: bRequestCoffee?
+GVL --> Machine : TRUE (Start process)
+deactivate GVL
+Note over Machine: Machine is working
+Machine -> GVL : Write: bCoffeeReady := TRUE
+activate GVL
+
+Student -> GVL : Read: bCoffeeReady?
+GVL --> Student : TRUE (Take coffee)
+deactivate GVL
+
+Note over Student: Student takes cup
+
+Student -> GVL : Write: bRequestCoffee := FALSE
+activate GVL
+Machine -> GVL : Read: bRequestCoffee?
+GVL --> Machine : FALSE (Reset to IDLE)
+deactivate GVL
+
+@enduml
+ 
+Sequence diagram function call (in machine task) code
+@startuml
+title Sequence: Function Call (Inside Machine task)
+autonumber
+
+participant "PRG_Machine" as Task
+participant "FC_CalcTime (Function)" as Func
+
+Note over Task: Machine enters\nSTATE_CALCULATING
+
+' Eerste
+Task -> Func : Call: FC_CalcTime( iInput := 3 )
+activate Func
+
+' Result blokje
+Note right of Func
+  Result := iInput * 1500ms;
+End note
+
+' terug
+Func --> Task : Return: T#4500ms
+deactivate Func
+
+Note over Task: Task stores value in:\ntBrewTime
+@enduml
